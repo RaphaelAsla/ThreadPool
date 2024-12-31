@@ -99,6 +99,8 @@ int main() {
 
     auto start = std::chrono::high_resolution_clock::now();
 
+    std::cout << std::setprecision(11);
+
     for (int k = 0; k < numTasks; ++k) {
         uint64_t startTerm = k * termsPerTask;
         pool.AddTask([startTerm, termsPerTask, &piEstimate]() {
@@ -119,7 +121,7 @@ int main() {
 
     std::cout << "Tasks left: " << pool.GetQueueSize() << std::endl;
     std::cout << "Total execution time: " << duration.count() << " seconds" << std::endl;
-    std::cout << "Estimated value of pi: " << std::setprecision(11) << finalPiEstimate << std::endl;
+    std::cout << "Estimated value of pi: " << finalPiEstimate << std::endl;
 
     return 0;
 }
