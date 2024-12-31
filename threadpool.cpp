@@ -7,14 +7,14 @@
 
 class ThreadPool {
   public:
-    ThreadPool(int num_threads = 1) : active_tasks(0), is_active(true) {
+    ThreadPool(int num_threads = 1) : active_tasks{0}, is_active{true} {
         while (num_threads-- > 0) {
             workers.emplace_back([this] {
                 for (;;) {
                     std::function<void()> task;
 
                     {
-                        std::unique_lock<std::mutex> lock(guard);
+                        std::unique_lock<std::mutex> lock{guard};
                         guard_condition.wait(lock, [this] { return !is_active.load() || !tasks.empty(); });
                         if (!this->is_active.load() && this->tasks.empty()) {
                             return;
@@ -27,7 +27,7 @@ class ThreadPool {
                     task();
 
                     {
-                        std::lock_guard<std::mutex> lock(guard);
+                        std::lock_guard<std::mutex> lock{guard};
                         if (--active_tasks == 0 && tasks.empty()) {
                             guard_condition.notify_all();
                         }
@@ -39,7 +39,7 @@ class ThreadPool {
 
     ~ThreadPool() {
         {
-            std::unique_lock<std::mutex> lock(guard);
+            std::unique_lock<std::mutex> lockg{guard};
             is_active = false;
         }
         guard_condition.notify_all();
@@ -52,19 +52,19 @@ class ThreadPool {
 
     void AddTask(std::function<void()>&& callback) {
         {
-            std::lock_guard<std::mutex> lock(guard);
+            std::lock_guard<std::mutex> lock{guard};
             tasks.emplace(std::move(callback));
         }
         guard_condition.notify_one();
     }
 
     void WaitUntilEmpty() {
-        std::unique_lock<std::mutex> lock(guard);
+        std::unique_lock<std::mutex> lock{guard};
         guard_condition.wait(lock, [this] { return active_tasks == 0 && tasks.empty(); });
     }
 
     size_t GetQueueSize() {
-        std::lock_guard<std::mutex> lock(guard);
+        std::lock_guard<std::mutex> lock{guard};
         return tasks.size();
     }
 
@@ -77,15 +77,13 @@ class ThreadPool {
     std::queue<std::function<void()>> tasks;
 };
 
-double ComputePiSegment(int startTerm, int numTerms) {
+double ComputePiSegment(uint64_t startTerm, uint64_t numTerms) {
     double localSum = 0.0;
-    for (int i = startTerm; i < startTerm + numTerms; ++i) {
+    double sign     = 1.0;
+    for (uint64_t i = startTerm; i < startTerm + numTerms; i++) {
         double term = 1.0 / (2.0 * i + 1.0);
-        if (i % 2 == 0) {
-            localSum += term;
-        } else {
-            localSum -= term;
-        }
+        localSum += sign * term;
+        sign = -sign;
     }
     return localSum;
 }
@@ -93,21 +91,21 @@ double ComputePiSegment(int startTerm, int numTerms) {
 int main() {
     ThreadPool pool(std::thread::hardware_concurrency());
 
-    int totalTerms   = std::numeric_limits<int>::max();
-    int numTasks     = 50;
-    int termsPerTask = totalTerms / numTasks;
+    int      numTasks     = 100;
+    uint64_t totalTerms   = std::numeric_limits<int>::max() * 10LL;
+    uint64_t termsPerTask = totalTerms / numTasks;
 
-    std::atomic<double> piEstimate(0.0);
+    std::atomic<double> piEstimate = 0.0;
 
     auto start = std::chrono::high_resolution_clock::now();
 
     for (int k = 0; k < numTasks; ++k) {
-        int startTerm = k * termsPerTask;
+        uint64_t startTerm = k * termsPerTask;
         pool.AddTask([startTerm, termsPerTask, &piEstimate]() {
             double segmentSum = ComputePiSegment(startTerm, termsPerTask);
             piEstimate += segmentSum;
 
-            if (startTerm / termsPerTask % 10 == 0) {
+            if ((startTerm / termsPerTask) % 10 == 0) {
                 std::cout << "Task starting at term " << startTerm << ": partial sum = " << segmentSum << std::endl;
             }
         });
@@ -121,7 +119,7 @@ int main() {
 
     std::cout << "Tasks left: " << pool.GetQueueSize() << std::endl;
     std::cout << "Total execution time: " << duration.count() << " seconds" << std::endl;
-    std::cout << "Estimated value of pi: " << std::setprecision(10) << finalPiEstimate << std::endl;
+    std::cout << "Estimated value of pi: " << std::setprecision(11) << finalPiEstimate << std::endl;
 
     return 0;
 }
