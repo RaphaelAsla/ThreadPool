@@ -97,9 +97,9 @@ int main() {
 
     std::atomic<double> piEstimate = 0.0;
 
-    auto start = std::chrono::high_resolution_clock::now();
-
     std::cout << std::setprecision(11);
+
+    auto start = std::chrono::high_resolution_clock::now();
 
     for (int k = 0; k < numTasks; ++k) {
         uint64_t startTerm = k * termsPerTask;
@@ -115,9 +115,10 @@ int main() {
 
     pool.WaitUntilEmpty();
 
-    double                        finalPiEstimate = 4.0 * piEstimate.load();
-    auto                          end             = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> duration        = end - start;
+    double finalPiEstimate = 4.0 * piEstimate.load();
+    auto   end             = std::chrono::high_resolution_clock::now();
+
+    std::chrono::duration<double> duration = end - start;
 
     std::cout << "Tasks left: " << pool.GetQueueSize() << std::endl;
     std::cout << "Total execution time: " << duration.count() << " seconds" << std::endl;
