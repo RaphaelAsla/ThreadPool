@@ -8,7 +8,7 @@
 class ThreadPool {
   public:
     ThreadPool(int num_threads = 1) : active_tasks(0), is_active(true) {
-        for (size_t i = 0; i < num_threads; i++) {
+        while (num_threads-- > 0) {
             workers.emplace_back([this] {
                 for (;;) {
                     std::function<void()> task;
