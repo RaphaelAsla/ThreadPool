@@ -28,8 +28,7 @@ class ThreadPool {
 
                     {
                         std::lock_guard<std::mutex> lock(guard);
-                        active_tasks--;
-                        if (tasks.empty() && active_tasks == 0) {
+                        if (--active_tasks == 0 && tasks.empty()) {
                             guard_condition.notify_all();
                         }
                     }
@@ -61,7 +60,7 @@ class ThreadPool {
 
     void WaitUntilEmpty() {
         std::unique_lock<std::mutex> lock(guard);
-        guard_condition.wait(lock, [this] { return tasks.empty() && active_tasks == 0; });
+        guard_condition.wait(lock, [this] { return active_tasks == 0 && tasks.empty(); });
     }
 
     size_t GetQueueSize() {
